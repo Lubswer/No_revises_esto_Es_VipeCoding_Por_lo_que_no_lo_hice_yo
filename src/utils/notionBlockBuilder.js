@@ -1,30 +1,74 @@
 /**
- * Utilidades para convertir texto/markdown simplificado
- * a bloques compatibles con la API de Notion.
+ * Parsea un string de markdown inline y devuelve un array de objetos rich_text de Notion
+ * soportando **negrita**, *cursiva*, y `código inline`.
  *
- * Notion usa bloques tipados (paragraph, heading_2, bulleted_list_item, code, etc.)
- * en lugar de markdown plano.
+ * @param {string} text - Texto con markdown inline.
+ * @returns {Array} Array de rich_text objects para la API de Notion.
  */
+export function parseInlineMarkdown(text) {
+  if (!text) return [];
+
+  const chunks = [];
+  // Regex para capturar **bold**, *italic*, y `code`
+  const regex = /(\*\*(.*?)\*\*|\*(.*?)\*|`(.*?)`)/g;
+
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(text)) !== null) {
+    // Texto plano previo a la coincidencia
+    if (match.index > lastIndex) {
+      chunks.push({
+        type: 'text',
+        text: { content: text.slice(lastIndex, match.index) },
+        annotations: { bold: false, italic: false, code: false },
+      });
+    }
+
+    const fullMatch = match[0];
+    if (fullMatch.startsWith('**')) {
+      // Negrita
+      chunks.push({
+        type: 'text',
+        text: { content: match[2] },
+        annotations: { bold: true, italic: false, code: false },
+      });
+    } else if (fullMatch.startsWith('`')) {
+      // Código inline
+      chunks.push({
+        type: 'text',
+        text: { content: match[4] },
+        annotations: { bold: false, italic: false, code: true },
+      });
+    } else if (fullMatch.startsWith('*')) {
+      // Cursiva
+      chunks.push({
+        type: 'text',
+        text: { content: match[3] },
+        annotations: { bold: false, italic: true, code: false },
+      });
+    }
+
+    lastIndex = regex.lastIndex;
+  }
+
+  // Texto restante
+  if (lastIndex < text.length) {
+    chunks.push({
+      type: 'text',
+      text: { content: text.slice(lastIndex) },
+      annotations: { bold: false, italic: false, code: false },
+    });
+  }
+
+  return chunks.length > 0 ? chunks : [{ type: 'text', text: { content: text } }];
+}
 
 /**
- * Crea un bloque de texto enriquecido de Notion (rich_text).
- * @param {string} text - Texto plano.
- * @param {Object} annotations - Estilos opcionales.
- * @returns {Object} Rich text object de Notion.
+ * Crea un bloque de texto enriquecido de Notion.
  */
-function richText(text, annotations = {}) {
-  return {
-    type: 'text',
-    text: { content: text },
-    annotations: {
-      bold: false,
-      italic: false,
-      strikethrough: false,
-      underline: false,
-      code: false,
-      ...annotations,
-    },
-  };
+function richText(text) {
+  return parseInlineMarkdown(text);
 }
 
 /**
@@ -35,7 +79,7 @@ export function paragraph(text) {
     object: 'block',
     type: 'paragraph',
     paragraph: {
-      rich_text: [richText(text)],
+      rich_text: parseInlineMarkdown(text),
     },
   };
 }
@@ -48,7 +92,7 @@ export function heading2(text) {
     object: 'block',
     type: 'heading_2',
     heading_2: {
-      rich_text: [richText(text)],
+      rich_text: parseInlineMarkdown(text),
     },
   };
 }
@@ -61,7 +105,7 @@ export function heading3(text) {
     object: 'block',
     type: 'heading_3',
     heading_3: {
-      rich_text: [richText(text)],
+      rich_text: parseInlineMarkdown(text),
     },
   };
 }
@@ -74,7 +118,7 @@ export function bulletItem(text) {
     object: 'block',
     type: 'bulleted_list_item',
     bulleted_list_item: {
-      rich_text: [richText(text)],
+      rich_text: parseInlineMarkdown(text),
     },
   };
 }
@@ -87,8 +131,8 @@ export function codeBlock(code, language = 'javascript') {
     object: 'block',
     type: 'code',
     code: {
-      rich_text: [richText(code)],
-      language,
+      rich_text: [{ type: 'text', text: { content: code } }],
+      language: language || 'javascript',
     },
   };
 }
@@ -101,7 +145,7 @@ export function callout(text, emoji = '💡') {
     object: 'block',
     type: 'callout',
     callout: {
-      rich_text: [richText(text)],
+      rich_text: parseInlineMarkdown(text),
       icon: { type: 'emoji', emoji },
     },
   };
@@ -126,7 +170,34 @@ export function quote(text) {
     object: 'block',
     type: 'quote',
     quote: {
-      rich_text: [richText(text)],
+      rich_text: parseInlineMarkdown(text),
+    },
+  };
+}
+
+/**
+ * Crea un bloque de Tabla de Contenidos (Índice nativo navegable de Notion).
+ */
+export function tableOfContents() {
+  return {
+    object: 'block',
+    type: 'table_of_contents',
+    table_of_contents: {
+      color: 'gray_background',
+    },
+  };
+}
+
+/**
+ * Crea un bloque desplegable (Toggle block).
+ */
+export function toggle(title, children = []) {
+  return {
+    object: 'block',
+    type: 'toggle',
+    toggle: {
+      rich_text: parseInlineMarkdown(title),
+      children,
     },
   };
 }
@@ -149,6 +220,12 @@ export function quote(text) {
 export function markdownToBlocks(markdown) {
   const lines = markdown.split('\n');
   const blocks = [];
+
+  // 1. Insertar siempre la Tabla de Contenidos / Índice navegable arriba del todo
+  blocks.push(callout('Índice Navegable de la Nota', '📍'));
+  blocks.push(tableOfContents());
+  blocks.push(divider());
+
   let inCodeBlock = false;
   let codeBuffer = [];
   let codeLanguage = 'plain text';
