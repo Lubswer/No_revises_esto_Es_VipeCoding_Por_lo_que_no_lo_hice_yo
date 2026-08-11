@@ -1,0 +1,33 @@
+{
+  "name": "notion-aut",
+  "version": "1.0.0",
+  "description": "Agente de Memoria de Aprendizaje Personal — Groq + Mem0 + Notion",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "serve": "node src/index.js --serve",
+    "dev": "node --watch src/index.js --serve",
+    "mcp": "node src/mcp.js",
+    "mcp:inspect": "npx -y @modelcontextprotocol/inspector node src/mcp.js",
+    "test": "node src/index.js --text \"Hoy aprendí que los closures en JavaScript capturan variables por referencia, no por valor. Esto significa que si modifico la variable después de crear el closure, el closure verá el valor actualizado.\""
+  },
+  "keywords": [
+    "notion",
+    "mem0",
+    "groq",
+    "learning",
+    "memory"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@notionhq/client": "^2.2.0",
+    "dotenv": "^16.4.0",
+    "express": "^4.21.0",
+    "groq-sdk": "^0.8.0",
+    "mem0ai": "^3.1.5",
+    "zod": "^4.4.3"
+  }
+}
