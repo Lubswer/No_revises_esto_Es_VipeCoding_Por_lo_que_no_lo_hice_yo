@@ -203,19 +203,31 @@ export function toggle(title, children = []) {
 }
 
 /**
+ * Crea un bloque de Tabla nativa de Notion.
+ */
+export function tableBlock(rows) {
+  if (!rows || rows.length === 0) return null;
+  const width = rows[0].length;
+
+  return {
+    object: 'block',
+    type: 'table',
+    table: {
+      table_width: width,
+      has_column_header: true,
+      has_row_header: false,
+      children: rows.map((row) => ({
+        type: 'table_row',
+        table_row: {
+          cells: row.map((cell) => parseInlineMarkdown(cell)),
+        },
+      })),
+    },
+  };
+}
+
+/**
  * Convierte texto con formato simplificado a un array de bloques de Notion.
- *
- * Formato soportado:
- * - `## Título`       → heading_2
- * - `### Subtítulo`   → heading_3
- * - `- item`          → bulleted_list_item
- * - `> cita`          → quote
- * - ``` código ```    → code
- * - `💡 callout`      → callout
- * - Texto normal      → paragraph
- *
- * @param {string} markdown - Texto con formato simplificado.
- * @returns {Object[]} Array de bloques de Notion.
  */
 export function markdownToBlocks(markdown) {
   const lines = markdown.split('\n');
@@ -229,20 +241,63 @@ export function markdownToBlocks(markdown) {
   let inCodeBlock = false;
   let codeBuffer = [];
   let codeLanguage = 'plain text';
+  let toggleSummary = '▶️ 💻 Ver Ejemplo Práctico de Código';
 
-  for (const line of lines) {
-    // Manejo de bloques de código multilínea
-    if (line.startsWith('```')) {
+  let inTable = false;
+  let tableRows = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Detección de tablas markdown (| col1 | col2 |)
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      // Ignorar línea divisoria markdown (| --- | --- |)
+      if (trimmed.includes('---')) continue;
+
+      const cells = trimmed
+        .split('|')
+        .slice(1, -1)
+        .map((c) => c.trim());
+
+      if (cells.length > 0) {
+        tableRows.push(cells);
+        inTable = true;
+      }
+      continue;
+    } else if (inTable) {
+      // Fin de la tabla
+      if (tableRows.length > 0) {
+        const tbl = tableBlock(tableRows);
+        if (tbl) blocks.push(tbl);
+      }
+      tableRows = [];
+      inTable = false;
+    }
+
+    // Detección de etiquetas <details> y <summary> para Toggles
+    if (trimmed.startsWith('<summary>')) {
+      toggleSummary = trimmed.replace(/<\/?summary>/g, '').trim();
+      continue;
+    }
+    if (trimmed === '</details>' || trimmed === '<details>') {
+      continue;
+    }
+
+    // Manejo de bloques de código multilínea (dentro de un Toggle)
+    if (trimmed.startsWith('```')) {
       if (inCodeBlock) {
-        // Cerrar bloque de código
-        blocks.push(codeBlock(codeBuffer.join('\n'), codeLanguage));
+        // Cerrar bloque de código envuelto en un Toggle desplegable
+        const codeBlk = codeBlock(codeBuffer.join('\n'), codeLanguage);
+        blocks.push(toggle(toggleSummary, [codeBlk]));
         codeBuffer = [];
         inCodeBlock = false;
         codeLanguage = 'plain text';
+        toggleSummary = '▶️ 💻 Ver Ejemplo Práctico de Código';
       } else {
         // Abrir bloque de código
         inCodeBlock = true;
-        const lang = line.slice(3).trim();
+        const lang = trimmed.slice(3).trim();
         if (lang) codeLanguage = lang;
       }
       continue;
@@ -254,7 +309,6 @@ export function markdownToBlocks(markdown) {
     }
 
     // Líneas vacías → omitir (Notion maneja el espaciado)
-    const trimmed = line.trim();
     if (!trimmed) continue;
 
     // Heading 2

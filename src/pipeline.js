@@ -2,12 +2,10 @@ import logger from './utils/logger.js';
 import * as groqService from './services/groqService.js';
 import * as mem0Service from './services/mem0Service.js';
 import * as notionService from './services/notionService.js';
+import { sessionManager } from './utils/sessionManager.js';
 
 /**
  * Verifica si un texto incluye el centinela '!' al inicio.
- *
- * @param {string} text
- * @returns {boolean}
  */
 export function hasSentinel(text) {
   if (!text || typeof text !== 'string') return false;
@@ -16,13 +14,68 @@ export function hasSentinel(text) {
 
 /**
  * Verifica si un texto incluye el centinela de consulta '!?' al inicio.
- *
- * @param {string} text
- * @returns {boolean}
  */
 export function hasQuerySentinel(text) {
   if (!text || typeof text !== 'string') return false;
   return text.trim().startsWith('!?');
+}
+
+/**
+ * Verifica si un texto abre una sesión de estudio '!*'.
+ */
+export function hasStartSessionSentinel(text) {
+  if (!text || typeof text !== 'string') return false;
+  return text.trim().startsWith('!*');
+}
+
+/**
+ * Verifica si un texto cierra una sesión de estudio '*!'.
+ */
+export function hasCloseSessionSentinel(text) {
+  if (!text || typeof text !== 'string') return false;
+  return text.trim().startsWith('*!');
+}
+
+/**
+ * Inicia una sesión de estudio grabada.
+ */
+export function startStudySession(sessionId, text) {
+  return sessionManager.startSession(sessionId, text);
+}
+
+/**
+ * Acumula mensajes si hay sesión activa.
+ */
+export function appendToStudySession(sessionId, text) {
+  return sessionManager.appendMessage(sessionId, text);
+}
+
+/**
+ * Cierra la sesión de estudio y genera la vista previa de toda la transcripción acumulada.
+ */
+export async function closeStudySession(sessionId = 'default', source = 'Sesión de Estudio') {
+  const sessionData = sessionManager.closeSession(sessionId);
+
+  if (!sessionData || !sessionData.fullTranscript) {
+    return {
+      hasConcepts: false,
+      message: 'No había ninguna sesión de estudio activa o estaba vacía.',
+      previews: [],
+    };
+  }
+
+  // Generar vista previa de toda la transcripción acumulada
+  const preview = await generatePreview(sessionData.fullTranscript, { source });
+  return {
+    ...preview,
+    sessionStats: {
+      messageCount: sessionData.messageCount,
+      startedAt: sessionData.startedAt,
+      closedAt: sessionData.closedAt,
+      transcriptLength: sessionData.fullTranscript.length,
+    },
+    fullTranscript: sessionData.fullTranscript,
+  };
 }
 
 /**

@@ -43,7 +43,18 @@ if (missing.length > 0) {
 
 // Importar config y servicios DESPUÉS de cargar dotenv
 const { default: config } = await import('./config.js');
-const { processConversation, generatePreview, queryBrain, hasSentinel, hasQuerySentinel } = await import('./pipeline.js');
+const { 
+  processConversation, 
+  generatePreview, 
+  queryBrain, 
+  hasSentinel, 
+  hasQuerySentinel,
+  hasStartSessionSentinel,
+  hasCloseSessionSentinel,
+  startStudySession,
+  appendToStudySession,
+  closeStudySession
+} = await import('./pipeline.js');
 const notionService = await import('./services/notionService.js');
 const mem0Service = await import('./services/mem0Service.js');
 
@@ -54,8 +65,101 @@ console.log = (...args) => console.error('[MCP]', ...args);
 // ── Inicializar servidor MCP ──
 const server = new McpServer({
   name: 'notion-learning-memory',
-  version: '1.2.0',
+  version: '1.3.0',
 });
+
+// ═══════════════════════════════════════════════════════
+// TOOL SESSION START: Abrir sesión de estudio (!*)
+// ═══════════════════════════════════════════════════════
+server.tool(
+  'start_study_session',
+  'REGLA OBLIGATORIA: Activa esta herramienta SOLO si el mensaje del usuario comienza con "!*" (ejemplo: "!* Vamos a hablar sobre microservicios"). Abre una ventana de sesión de estudio grabada. A partir de este momento, RESPONDE NORMALLMENTE A TODAS LAS PREGUNTAS DEL USUARIO SIN PARAR A PREGUNTAR NI PROCESAR EN NOTION, hasta que el usuario envíe el comando de cierre "*!".',
+  {
+    topic_or_initial_text: z.string().describe('El mensaje que inicia con "!*"'),
+  },
+  async ({ topic_or_initial_text }) => {
+    try {
+      startStudySession('default', topic_or_initial_text);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `🎬 **Sesión de Estudio iniciada**.\n\nA partir de este momento todo lo que conversemos será recopilado en memoria. La conversación fluirá 100% normal sin pausas.\n\nCuando desees finalizar y procesar todo lo aprendido hacia Notion, envía el comando: **\`*!\`**`,
+          },
+        ],
+      };
+    } catch (err) {
+      return {
+        content: [{ type: 'text', text: `❌ Error al iniciar sesión: ${err.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// ═══════════════════════════════════════════════════════
+// TOOL SESSION CLOSE: Cerrar sesión y procesar (*!)
+// ═══════════════════════════════════════════════════════
+server.tool(
+  'close_study_session',
+  'REGLA OBLIGATORIA: Activa esta herramienta SOLO si el mensaje del usuario comienza con "*!" (ejemplo: "*!"). Cierra la ventana de sesión de estudio, toma TODA la transcripción acumulada de la charla, la analiza con Groq y Mem0, y presenta la VISTA PREVIA COMPLETA de las notas propuestas para Notion, pidiendo confirmación al usuario antes de guardarlas con confirm_save.',
+  {
+    closing_text: z.string().optional().describe('El texto de cierre que inicia con "*!"'),
+  },
+  async () => {
+    try {
+      const previewResult = await closeStudySession('default', 'Sesión de Estudio');
+
+      if (!previewResult.hasConcepts) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `🏁 **Sesión de estudio finalizada.**\n\nℹ️ ${previewResult.message}\n(No se realizará ningún cambio en Notion).`,
+            },
+          ],
+        };
+      }
+
+      const outputLines = [
+        `🏁 **SESIÓN DE ESTUDIO FINALIZADA (*!)**`,
+        `📊 Mensajes procesados: ${previewResult.sessionStats?.messageCount || 0} (${previewResult.sessionStats?.transcriptLength || 0} caracteres)`,
+        `---`,
+        `📋 **PROPUESTA DE GUARDADO EN NOTION**`,
+        `---`,
+      ];
+
+      previewResult.previews.forEach((p, i) => {
+        const actionLabel = p.action === 'CREATE' ? '🆕 CREAR PÁGINA NUEVA' : '🔄 ACTUALIZAR PÁGINA EXISTENTE';
+        outputLines.push(`### Concepto ${i + 1}: ${p.concept.name}`);
+        outputLines.push(`* **Acción:** ${actionLabel}`);
+        outputLines.push(`* **Categoría:** \`${p.concept.category}\``);
+        outputLines.push(`* **Resumen:** ${p.concept.summary}`);
+        outputLines.push(`* **Tags:** ${p.concept.tags.join(', ') || 'ninguno'}`);
+        outputLines.push(`* **Memorias afines en Mem0:** ${p.relatedMemoriesCount}`);
+        outputLines.push(``);
+        outputLines.push(`**Vista previa del contenido para el body:**`);
+        outputLines.push(`\`\`\`markdown`);
+        outputLines.push(p.concept.bodyContent.slice(0, 400) + (p.concept.bodyContent.length > 400 ? '\n...' : ''));
+        outputLines.push(`\`\`\``);
+        outputLines.push(`---`);
+      });
+
+      outputLines.push(``);
+      outputLines.push(`❓ **¿Deseas confirmar la creación/actualización de estas notas recopiladas de la sesión en Notion?**`);
+
+      return {
+        content: [{ type: 'text', text: outputLines.join('\n') }],
+      };
+    } catch (err) {
+      return {
+        content: [{ type: 'text', text: `❌ Error al cerrar sesión de estudio: ${err.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
 
 // ═══════════════════════════════════════════════════════
 // TOOL 0: Consulta directa a la Base de Conocimiento (!?)
