@@ -3,6 +3,7 @@ node_modules/
 
 # Variables de entorno
 .env
+.mcp.json
 
 # Logs
 *.log

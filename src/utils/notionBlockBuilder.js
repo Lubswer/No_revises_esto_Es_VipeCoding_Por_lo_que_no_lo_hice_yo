@@ -198,15 +198,25 @@ export function markdownToBlocks(markdown) {
       continue;
     }
 
-    // Cita
-    if (trimmed.startsWith('> ')) {
-      blocks.push(quote(trimmed.slice(2)));
+    // Callout (empieza con emoji seguido de texto o negritas)
+    const emojiMatch = trimmed.match(/^([\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}])\s+(.*)/u);
+    if (emojiMatch && (trimmed.startsWith('💡') || trimmed.startsWith('⚠️') || trimmed.startsWith('🚀') || trimmed.startsWith('📌') || trimmed.startsWith('💻') || trimmed.startsWith('🔗'))) {
+      const emoji = emojiMatch[1];
+      const textContent = emojiMatch[2].replace(/^\*\*(.*)\*\*$/, '$1').trim();
+      blocks.push(callout(textContent, emoji));
       continue;
     }
 
-    // Callout (empieza con emoji seguido de texto)
-    if (trimmed.startsWith('💡 ') || trimmed.startsWith('⚠️ ') || trimmed.startsWith('📝 ')) {
-      blocks.push(callout(trimmed.slice(2).trim(), trimmed.slice(0, 2)));
+    // Cita / Blockquote (si empieza con >)
+    if (trimmed.startsWith('> ')) {
+      const quoteText = trimmed.slice(2).trim();
+      // Si la cita empieza con emoji, convertir a Callout visual
+      if (quoteText.match(/^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}]/u)) {
+        const emoji = quoteText.slice(0, 2).trim();
+        blocks.push(callout(quoteText.slice(2).trim(), emoji || '💡'));
+      } else {
+        blocks.push(quote(quoteText));
+      }
       continue;
     }
 

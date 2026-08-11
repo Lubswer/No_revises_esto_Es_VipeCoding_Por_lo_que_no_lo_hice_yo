@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "notion-learning-memory": {
+      "command": "node",
+      "args": [
+        "c:/Users/usuario/Desktop/NotionAut/src/mcp.js"
+      ]
+    }
+  }
+}

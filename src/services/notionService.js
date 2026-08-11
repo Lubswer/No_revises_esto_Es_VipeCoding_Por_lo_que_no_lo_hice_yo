@@ -20,21 +20,59 @@ const rateLimiter = new RateLimiter(3, 1000); // 3 requests por segundo
  * @param {string} conceptData.bodyContent - Contenido markdown para el body.
  * @returns {Promise<Object>} Página creada en Notion.
  */
+const CATEGORY_ICONS = {
+  'Programación': '💻',
+  'Arquitectura': '🏛️',
+  'DevOps': '⚙️',
+  'IA/ML': '🧠',
+  'Base de Datos': '🗄️',
+  'Frontend': '🎨',
+  'Backend': '🚀',
+  'Redes': '🌐',
+  'Seguridad': '🔐',
+  'Diseño': '✨',
+  'Metodología': '📋',
+  'Concepto General': '📚',
+};
+
+function getCategoryIcon(category) {
+  return CATEGORY_ICONS[category] || '💡';
+}
+
+/**
+ * Crea una nueva página en la base de datos de Notion.
+ *
+ * @param {Object} conceptData
+ * @param {string} conceptData.name - Nombre del concepto.
+ * @param {string} conceptData.category - Categoría (select).
+ * @param {string} conceptData.summary - Resumen breve.
+ * @param {string} conceptData.source - Fuente de la información.
+ * @param {string[]} conceptData.tags - Tags del concepto.
+ * @param {string} conceptData.mem0Id - ID de Mem0 para sincronización.
+ * @param {string} conceptData.bodyContent - Contenido markdown para el body.
+ * @returns {Promise<Object>} Página creada en Notion.
+ */
 export async function createPage(conceptData) {
-  logger.info(`📄 Notion: Creando página "${conceptData.name}"...`);
+  logger.info(`📄 Notion: Creando página "${conceptData.name}" con icono...`);
 
   await rateLimiter.acquire();
+
+  const iconEmoji = getCategoryIcon(conceptData.category);
 
   const page = await withRetry(
     () =>
       notion.pages.create({
         parent: { database_id: config.notion.databaseId },
+        icon: {
+          type: 'emoji',
+          emoji: iconEmoji,
+        },
         properties: buildProperties(conceptData),
       }),
     { label: 'Notion createPage', maxRetries: 3 }
   );
 
-  logger.success(`Notion: Página creada con ID ${page.id}`);
+  logger.success(`Notion: Página creada con icono ${iconEmoji} e ID ${page.id}`);
 
   // Escribir contenido en el body de la página
   if (conceptData.bodyContent) {
