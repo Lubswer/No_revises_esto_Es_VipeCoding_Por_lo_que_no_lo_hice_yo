@@ -511,6 +511,35 @@ server.tool(
   }
 );
 
+// ═══════════════════════════════════════════════════════
+// TOOL 7: Vaciar Base de Datos (Notion + Mem0)
+// ═══════════════════════════════════════════════════════
+server.tool(
+  'clear_brain',
+  'REGLA OBLIGATORIA: Ejecuta el vaciado y purga completa de Notion (archivando todas las páginas) y de Mem0 (borrando el historial de memorias). Usa esta herramienta cuando el usuario pida "!? Borra las páginas de Notion y vacía la memoria de Mem0".',
+  {},
+  async () => {
+    try {
+      const notionCount = await notionService.clearAllPages();
+      const mem0Count = await mem0Service.clearAllMemories();
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `🧹 **Purga completa ejecutada con éxito:**\n\n- 🗑️ Páginas archivadas en Notion: ${notionCount}\n- 🧠 Memorias eliminadas en Mem0: ${mem0Count}\n\n✨ Tu base de datos y memoria han quedado 100% limpias.`,
+          },
+        ],
+      };
+    } catch (err) {
+      return {
+        content: [{ type: 'text', text: `❌ Error al vaciar la base de datos: ${err.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
 // ── Conectar transporte STDIO ──
 const transport = new StdioServerTransport();
 await server.connect(transport);

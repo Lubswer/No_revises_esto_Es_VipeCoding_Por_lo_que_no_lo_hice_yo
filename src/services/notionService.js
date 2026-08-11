@@ -433,13 +433,31 @@ function buildProperties(data) {
 }
 
 /**
- * Divide un array en chunks de tamaño máximo.
+ * Archiva todas las páginas existentes en la base de datos de Notion.
+ *
+ * @returns {Promise<number>} Cantidad de páginas archivadas.
  */
-function chunkArray(arr, size) {
-  const chunks = [];
-  for (let i = 0; i < arr.length; i += size) {
-    chunks.push(arr.slice(i, i + size));
+export async function clearAllPages() {
+  logger.info('🧹 Notion: Buscando páginas para archivar...');
+
+  await rateLimiter.acquire();
+
+  const response = await withRetry(
+    () => notion.databases.query({ database_id: config.notion.databaseId }),
+    { label: 'Notion queryAllForClear', maxRetries: 3 }
+  );
+
+  let count = 0;
+  for (const page of response.results) {
+    await rateLimiter.acquire();
+    await withRetry(
+      () => notion.pages.update({ page_id: page.id, archived: true }),
+      { label: 'Notion archivePage', maxRetries: 3 }
+    );
+    count++;
   }
-  return chunks;
+
+  logger.success(`Notion: ${count} páginas archivadas completamente`);
+  return count;
 }
 

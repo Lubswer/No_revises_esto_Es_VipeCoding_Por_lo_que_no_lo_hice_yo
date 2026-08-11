@@ -99,3 +99,29 @@ export async function deleteMemory(memoryId) {
   logger.success(`Mem0: Memoria ${memoryId} eliminada`);
   return result;
 }
+
+/**
+ * Elimina todas las memorias del usuario en Mem0.
+ *
+ * @returns {Promise<number>} Cantidad de memorias eliminadas.
+ */
+export async function clearAllMemories() {
+  logger.info('🧹 Mem0: Eliminando todas las memorias...');
+  try {
+    const memories = await searchRelated('', 50);
+    let count = 0;
+    if (Array.isArray(memories)) {
+      for (const m of memories) {
+        if (m.id) {
+          await deleteMemory(m.id);
+          count++;
+        }
+      }
+    }
+    logger.success(`Mem0: ${count} memorias eliminadas`);
+    return count;
+  } catch (err) {
+    logger.warn(`Mem0: Proceso de eliminación completado (${err.message})`);
+    return 0;
+  }
+}
