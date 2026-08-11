@@ -83,7 +83,7 @@ export async function createPage(conceptData) {
 }
 
 /**
- * Actualiza las propiedades de una página existente.
+ * Actualiza las propiedades y contenido de una página existente.
  *
  * @param {string} pageId - ID de la página en Notion.
  * @param {Object} updatedData - Datos actualizados.
@@ -103,7 +103,12 @@ export async function updatePage(pageId, updatedData) {
     { label: 'Notion updatePage', maxRetries: 3 }
   );
 
-  logger.success(`Notion: Página ${pageId} actualizada`);
+  // Si incluye bodyContent, escribir el contenido enriquecido
+  if (updatedData.bodyContent) {
+    await appendContent(page.id, updatedData.bodyContent);
+  }
+
+  logger.success(`Notion: Página ${pageId} actualizada con contenido`);
   return page;
 }
 
