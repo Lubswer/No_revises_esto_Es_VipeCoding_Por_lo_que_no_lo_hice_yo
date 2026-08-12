@@ -29,6 +29,14 @@ export function hasStartContextSentinel(text) {
 }
 
 /**
+ * Verifica si un texto abre una sesión de estudio '!*'.
+ */
+export function hasStartSessionSentinel(text) {
+  if (!text || typeof text !== 'string') return false;
+  return text.trim().startsWith('!*');
+}
+
+/**
  * Exporta el conocimiento de Notion + Mem0 en un formato ultra-ligero y estructurado
  * para inyección directa en el contexto del LLM.
  *
@@ -265,7 +273,7 @@ export async function queryBrain(question) {
 
   return {
     found: true,
-    answer: answerText,
+    answer: answer,
     sourcePages: notionPages.map((p) => ({ id: p.id, name: p.name, category: p.category })),
   };
 }
@@ -323,7 +331,10 @@ Genera un reporte claro y motivador en Markdown con las siguientes secciones:
 4. 🕸️ **Red de Conexiones Mentales** (Cómo se relacionan los temas aprendidos).
 5. 🚀 **Siguiente Paso Recomendado** (Qué reforzar o aprender después).`;
 
-  const answer = await groqService.generateAnswer(topic || 'Evolución de Aprendizaje', prompt, 'Reporte de Metacognición');
+  const answer = await groqService.generatePageContent(
+    { name: topic || 'Evolución de Aprendizaje', category: 'Metacognición', summary: 'Reporte de evolución' },
+    [{ memory: prompt }]
+  );
 
   return {
     found: true,
