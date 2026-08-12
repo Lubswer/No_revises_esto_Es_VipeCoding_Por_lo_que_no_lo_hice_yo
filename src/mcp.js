@@ -168,7 +168,7 @@ server.tool(
 // ═══════════════════════════════════════════════════════
 server.tool(
   'query_brain',
-  'REGLA OBLIGATORIA: Activa esta herramienta SOLO si el mensaje del usuario comienza con el centinela "!?" (ejemplo: "!? ¿Qué sé sobre Closures?"). Esta herramienta realiza una consulta completa a Notion y Mem0, y devuelve la respuesta redactada basándose EXCLUSIVAMENTE en la base de datos del usuario, sin que la IA externa use su propio conocimiento predeterminado.',
+  'REGLA OBLIGATORIA: Activa esta herramienta SOLO si el mensaje del usuario comienza con el centinela "!?" (ejemplo: "!? ¿Qué sé sobre Closures?"). Realiza una consulta completa a Notion y Mem0. TRAS EJECUTAR ESTA HERRAMIENTA, DEBES MOSTRAR LA RESPUESTA DEVUELTA DIRECTAMENTE AL USUARIO.',
   {
     question: z.string().describe('La pregunta del usuario que inicia con "!?"'),
   },
@@ -578,7 +578,7 @@ server.tool(
 // ═══════════════════════════════════════════════════════
 server.tool(
   'export_llm_context',
-  'REGLA OBLIGATORIA: Activa esta herramienta SOLO cuando el usuario envíe el comando "!start" o "!start pagina1 pagina2". Extrae un Snapshot ultra-ligero y estructurado en JSON de las páginas y memorias aprendidas en Notion para inyectarlo directamente como contexto de partida en la IA.',
+  'REGLA OBLIGATORIA: Activa esta herramienta SOLO cuando el usuario envíe el comando "!start" o "!start pagina1 pagina2". Extrae un Snapshot ultra-ligero y estructurado en JSON. TRAS EJECUTAR ESTA HERRAMIENTA, DEBES IMPRIMIR Y MOSTRAR EL CONTENIDO EXTRAÍDO DIRECTAMENTE AL USUARIO.',
   {
     pages_filter: z.string().optional().describe('Filtro de páginas específicas o lista vacía para todo el conocimiento (ej: "!start pagina1 pagina2")'),
   },
