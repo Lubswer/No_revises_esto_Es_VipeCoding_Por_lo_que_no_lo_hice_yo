@@ -98,7 +98,7 @@ server.tool(
 // ═══════════════════════════════════════════════════════
 server.tool(
   'close_study_session',
-  'REGLA OBLIGATORIA: Activa esta herramienta SOLO si el mensaje del usuario comienza con "*!" (ejemplo: "*!"). Cierra la ventana de sesión de estudio, toma TODA la transcripción acumulada de la charla, la analiza con Groq y Mem0, y presenta la VISTA PREVIA COMPLETA de las notas propuestas para Notion, pidiendo confirmación al usuario antes de guardarlas con confirm_save.',
+  'REGLA OBLIGATORIA Y ABSOLUTA: Activa esta herramienta INMEDIATAMENTE siempre que el mensaje del usuario comience o contenga "*!" (ejemplo: "*!"). DEBES LLAMAR A ESTA HERRAMIENTA OBLIGATORIAMENTE para cerrar la sesión, analizar la transcripción guardada y generar la vista previa de Notion.',
   {
     closing_text: z.string().optional().describe('El texto de cierre que inicia con "*!"'),
   },
