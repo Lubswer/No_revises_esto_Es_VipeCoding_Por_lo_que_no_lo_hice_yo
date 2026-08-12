@@ -178,8 +178,71 @@ export async function queryBrain(question) {
 
   return {
     found: true,
-    answer,
-    sourcePages: notionPages.map(p => ({ id: p.id, name: p.name, category: p.category })),
+    answer: answerText,
+    sourcePages: notionPages.map((p) => ({ id: p.id, name: p.name, category: p.category })),
+  };
+}
+
+/**
+ * Analiza la evolución del aprendizaje, dudas históricas y puntos de fricción del usuario.
+ *
+ * @param {string} topic - Tema opcional a filtrar (ej: "Arquitectura", "Redis", "")
+ * @returns {Promise<Object>} Reporte de evolución metacognitiva.
+ */
+export async function getLearningEvolution(topic = '') {
+  logger.info(`📈 Obteniendo evolución de aprendizaje ${topic ? `para "${topic}"` : 'general'}...`);
+
+  // Listar todas las páginas guardadas en Notion
+  const allPages = await notionService.listAllConcepts(50);
+  const memories = await mem0Service.getAllMemories();
+
+  // Filtrar si se especificó tema
+  const filteredPages = topic
+    ? allPages.filter(p => 
+        p.name.toLowerCase().includes(topic.toLowerCase()) || 
+        p.category.toLowerCase().includes(topic.toLowerCase()) ||
+        p.tags.some(t => t.toLowerCase().includes(topic.toLowerCase()))
+      )
+    : allPages;
+
+  if (filteredPages.length === 0) {
+    return {
+      found: false,
+      message: `No se encontraron registros de aprendizaje ${topic ? `para "${topic}"` : ''} en tu Notion.`
+    };
+  }
+
+  // Sintetizar el análisis con Groq
+  const prompt = `Analiza los siguientes conceptos y notas del usuario para generar un REPORTE DE EVOLUCIÓN DE APRENDIZAJE:
+
+NOTAS DEL USUARIO:
+${JSON.stringify(filteredPages.map(p => ({
+  concepto: p.name,
+  categoria: p.category,
+  resumen: p.summary,
+  dudas: p.dudas,
+  dificultad: p.dificultad,
+  dominio: p.dominio,
+  fecha: p.date
+})), null, 2)}
+
+MEMORIAS DE MEM0:
+${JSON.stringify(memories.slice(0, 10), null, 2)}
+
+Genera un reporte claro y motivador en Markdown con las siguientes secciones:
+1. 📊 **Resumen Global del Progreso** (Nivel de dominio y cantidad de conceptos).
+2. ❓ **Preguntas y Dudas Históricas Resueltas** (Lo que se preguntaba antes).
+3. 🧱 **Puntos de Fricción (Conceptos que más costaron)**.
+4. 🕸️ **Red de Conexiones Mentales** (Cómo se relacionan los temas aprendidos).
+5. 🚀 **Siguiente Paso Recomendado** (Qué reforzar o aprender después).`;
+
+  const answer = await groqService.generateAnswer(topic || 'Evolución de Aprendizaje', prompt, 'Reporte de Metacognición');
+
+  return {
+    found: true,
+    pagesCount: filteredPages.length,
+    pages: filteredPages,
+    report: answer
   };
 }
 

@@ -22,13 +22,6 @@ async function setupDatabase() {
       database_id: databaseId,
       title: [{ text: { content: '🧠 Memoria de Aprendizaje' } }],
       properties: {
-        // Renombrar la propiedad title existente
-        'Nombre': {
-          name: 'Concepto',
-          type: 'title',
-          title: {},
-        },
-        // Nuevas propiedades
         'Categoría': {
           select: {
             options: [
@@ -72,6 +65,28 @@ async function setupDatabase() {
         },
         'Mem0 ID': {
           rich_text: {},
+        },
+        'Dudas Frecuentes': {
+          rich_text: {},
+        },
+        'Dificultad Percibida': {
+          select: {
+            options: [
+              { name: '🟢 Fácil', color: 'green' },
+              { name: '🟡 Moderada', color: 'yellow' },
+              { name: '🔴 Compleja', color: 'red' },
+              { name: '🧩 Requirió Repaso', color: 'purple' },
+            ],
+          },
+        },
+        'Nivel de Dominio': {
+          select: {
+            options: [
+              { name: '🌱 Aprendiendo', color: 'yellow' },
+              { name: '🌿 Practicando', color: 'blue' },
+              { name: '🌳 Dominado', color: 'green' },
+            ],
+          },
         },
       },
     });

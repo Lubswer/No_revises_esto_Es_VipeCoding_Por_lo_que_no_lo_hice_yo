@@ -325,6 +325,9 @@ function parsePageProperties(page) {
     tags: (props['Tags']?.multi_select || []).map((t) => t.name),
     mem0Id: props['Mem0 ID']?.rich_text?.[0]?.plain_text || '',
     relatedIds: (props['Relacionados']?.relation || []).map((r) => r.id),
+    dudas: props['Dudas Frecuentes']?.rich_text?.[0]?.plain_text || '',
+    dificultad: props['Dificultad Percibida']?.select?.name || '',
+    dominio: props['Nivel de Dominio']?.select?.name || '',
   };
 }
 
@@ -410,6 +413,28 @@ function buildProperties(data) {
   if (data.mem0Id) {
     props['Mem0 ID'] = {
       rich_text: [{ text: { content: data.mem0Id } }],
+    };
+  }
+
+  if (data.dudas) {
+    props['Dudas Frecuentes'] = {
+      rich_text: [{ text: { content: data.dudas.slice(0, 2000) } }],
+    };
+  }
+
+  if (data.dificultad) {
+    props['Dificultad Percibida'] = {
+      select: { name: data.dificultad },
+    };
+  }
+
+  if (data.dominio) {
+    props['Nivel de Dominio'] = {
+      select: { name: data.dominio },
+    };
+  } else {
+    props['Nivel de Dominio'] = {
+      select: { name: '🌱 Aprendiendo' },
     };
   }
 

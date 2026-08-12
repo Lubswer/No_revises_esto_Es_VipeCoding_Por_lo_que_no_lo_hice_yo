@@ -47,6 +47,7 @@ const {
   processConversation, 
   generatePreview, 
   queryBrain, 
+  getLearningEvolution,
   hasSentinel, 
   hasQuerySentinel,
   hasStartSessionSentinel,
@@ -534,6 +535,37 @@ server.tool(
     } catch (err) {
       return {
         content: [{ type: 'text', text: `❌ Error al vaciar la base de datos: ${err.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// ═══════════════════════════════════════════════════════
+// TOOL 8: Evolución de Aprendizaje & Radar Metacognitivo
+// ═══════════════════════════════════════════════════════
+server.tool(
+  'get_learning_evolution',
+  'Muestra la evolución del aprendizaje del usuario, sus preguntas pasadas, los puntos de fricción (conceptos que más costaron aprender) y el mapa de relaciones interconectadas. Usa esta herramienta cuando el usuario pregunte "!? ¿Cómo ha sido mi evolución en [tema]?" o quiera revisar su progreso.',
+  {
+    topic: z.string().optional().describe('Tema o área para filtrar la evolución (ej: "Arquitectura", "Redis", o vacío para todo)'),
+  },
+  async ({ topic }) => {
+    try {
+      const result = await getLearningEvolution(topic || '');
+
+      if (!result.found) {
+        return {
+          content: [{ type: 'text', text: `ℹ️ ${result.message}` }],
+        };
+      }
+
+      return {
+        content: [{ type: 'text', text: result.report }],
+      };
+    } catch (err) {
+      return {
+        content: [{ type: 'text', text: `❌ Error al consultar evolución: ${err.message}` }],
         isError: true,
       };
     }
