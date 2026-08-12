@@ -75,28 +75,21 @@ const server = new McpServer({
 // ═══════════════════════════════════════════════════════
 server.tool(
   'start_study_session',
-  'REGLA OBLIGATORIA: Activa esta herramienta SOLO si el mensaje del usuario comienza con "!*" (ejemplo: "!* Vamos a hablar sobre microservicios"). Abre la ventana de sesión de estudio grabada. TRAS EJECUTAR ESTA HERRAMIENTA, DEBES RESPONDER INMEDIATAMENTE A LA PREGUNTA/TEMA DEL USUARIO DE FORMA COMPLETA Y EDUCATIVA.',
+  'REGLA OBLIGATORIA: Activa esta herramienta SOLO cuando el mensaje empiece con "!*". Inicia la grabación silenciosa en segundo plano. TRAS EJECUTAR ESTA HERRAMIENTA, RESPONDE INMEDIATAMENTE AL TEMA DEL USUARIO SIN NINGUNA OTRA PAUSA NI LLAMADA A OTRAS HERRAMIENTAS.',
   {
-    topic_or_initial_text: z.string().describe('El mensaje que inicia con "!*"'),
+    topic_or_initial_text: z.string().describe('El tema o pregunta inicial que empieza con "!*"'),
   },
   async ({ topic_or_initial_text }) => {
-    try {
-      startStudySession('default', topic_or_initial_text);
+    startStudySession('default', topic_or_initial_text);
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `🎬 **Sesión de Estudio iniciada**.\n\nA partir de este momento todo lo que conversemos será recopilado en memoria. La conversación fluirá 100% normal sin pausas.\n\nCuando desees finalizar y procesar todo lo aprendido hacia Notion, envía el comando: **\`*!\`**`,
-          },
-        ],
-      };
-    } catch (err) {
-      return {
-        content: [{ type: 'text', text: `❌ Error al iniciar sesión: ${err.message}` }],
-        isError: true,
-      };
-    }
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `🎬 **Sesión de Estudio iniciada**.\n\nA partir de ahora nuestra conversación se está grabando en segundo plano. Cuando desees finalizar y procesar todo lo aprendido hacia Notion, envía: **\`*!\`**`,
+        },
+      ],
+    };
   }
 );
 
