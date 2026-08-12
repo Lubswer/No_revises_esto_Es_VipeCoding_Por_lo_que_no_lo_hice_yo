@@ -48,6 +48,7 @@ const {
   generatePreview, 
   queryBrain, 
   getLearningEvolution,
+  exportContextForLLM,
   hasSentinel, 
   hasQuerySentinel,
   hasStartSessionSentinel,
@@ -566,6 +567,37 @@ server.tool(
     } catch (err) {
       return {
         content: [{ type: 'text', text: `❌ Error al consultar evolución: ${err.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// ═══════════════════════════════════════════════════════
+// TOOL 9: Exportar Contexto Ligero para LLM (!start)
+// ═══════════════════════════════════════════════════════
+server.tool(
+  'export_llm_context',
+  'REGLA OBLIGATORIA: Activa esta herramienta SOLO cuando el usuario envíe el comando "!start" o "!start pagina1 pagina2". Extrae un Snapshot ultra-ligero y estructurado en JSON de las páginas y memorias aprendidas en Notion para inyectarlo directamente como contexto de partida en la IA.',
+  {
+    pages_filter: z.string().optional().describe('Filtro de páginas específicas o lista vacía para todo el conocimiento (ej: "!start pagina1 pagina2")'),
+  },
+  async ({ pages_filter }) => {
+    try {
+      const result = await exportContextForLLM(pages_filter || '');
+
+      if (!result.success) {
+        return {
+          content: [{ type: 'text', text: `ℹ️ ${result.message}` }],
+        };
+      }
+
+      return {
+        content: [{ type: 'text', text: result.formattedContent }],
+      };
+    } catch (err) {
+      return {
+        content: [{ type: 'text', text: `❌ Error al exportar contexto: ${err.message}` }],
         isError: true,
       };
     }

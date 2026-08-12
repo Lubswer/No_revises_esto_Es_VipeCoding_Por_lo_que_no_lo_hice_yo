@@ -21,11 +21,98 @@ export function hasQuerySentinel(text) {
 }
 
 /**
- * Verifica si un texto abre una sesión de estudio '!*'.
+ * Verifica si un texto es la orden '!start' para exportar contexto ligero al LLM.
  */
-export function hasStartSessionSentinel(text) {
+export function hasStartContextSentinel(text) {
   if (!text || typeof text !== 'string') return false;
-  return text.trim().startsWith('!*');
+  return text.trim().startsWith('!start');
+}
+
+/**
+ * Exporta el conocimiento de Notion + Mem0 en un formato ultra-ligero y estructurado
+ * para inyección directa en el contexto del LLM.
+ *
+ * @param {string} filterText - Nombres de páginas específicas opcionales ("pagina1 pagina2")
+ * @returns {Promise<Object>} Contexto formateado en esquema ligero.
+ */
+export async function exportContextForLLM(filterText = '') {
+  const cleanFilter = filterText.replace(/^!start/i, '').trim();
+  logger.info(`📦 Exportando contexto ligero para LLM ${cleanFilter ? `(Filtro: "${cleanFilter}")` : '(Completo)'}...`);
+
+  const pageNamesFilter = cleanFilter
+    ? cleanFilter.split(/\s+/).map((p) => p.replace(/["']/g, '').toLowerCase()).filter(Boolean)
+    : [];
+
+  // Obtener todas las páginas e historial de memorias
+  const allPages = await notionService.listAllConcepts(100);
+  const memories = await mem0Service.getAllMemories();
+
+  // Filtrar si se especificaron páginas
+  let selectedPages = allPages;
+  if (pageNamesFilter.length > 0) {
+    selectedPages = allPages.filter((page) =>
+      pageNamesFilter.some((f) => page.name.toLowerCase().includes(f))
+    );
+  }
+
+  if (selectedPages.length === 0 && memories.length === 0) {
+    return {
+      success: false,
+      message: `No se encontraron páginas ni memorias ${cleanFilter ? `que coincidan con "${cleanFilter}"` : 'guardadas'}.`,
+      formattedContent: `ℹ️ No hay datos guardados en la base de conocimiento.`,
+    };
+  }
+
+  // Leer detalles completos de las páginas seleccionadas
+  const detailedPages = [];
+  for (const page of selectedPages) {
+    try {
+      const fullPage = await notionService.getPageContent(page.id);
+      detailedPages.push(fullPage);
+    } catch (err) {
+      detailedPages.push(page);
+    }
+  }
+
+  // Estructura ultra-compacta y ligera para LLMs
+  const contextSnapshot = {
+    _meta: {
+      type: 'LEARNING_CONTEXT_SNAPSHOT',
+      generatedAt: new Date().toISOString(),
+      totalConcepts: detailedPages.length,
+      filteredBy: pageNamesFilter.length > 0 ? pageNamesFilter : 'ALL',
+    },
+    concepts: detailedPages.map((p) => ({
+      concepto: p.name,
+      categoria: p.category,
+      resumen: p.summary,
+      tags: p.tags,
+      estado: p.status,
+      dudas_frecuentes: p.dudas || undefined,
+      dificultad: p.dificultad || undefined,
+      dominio: p.dominio || undefined,
+      relaciones: p.relatedIds || [],
+      contenido_clave: p.bodyContent ? p.bodyContent.slice(0, 1500) : undefined,
+    })),
+    mem0_active_memories: memories.slice(0, 20).map((m) => m.memory || m.text || m),
+  };
+
+  const formattedOutput = [
+    `🧠 **SNAPSHOT DE CONOCIMIENTO PARA LLM (!start)**`,
+    `> **Total Conceptos Inyectados:** ${detailedPages.length}`,
+    `> **Filtro Aplicado:** ${pageNamesFilter.length > 0 ? pageNamesFilter.join(', ') : 'Todo el conocimiento en Notion'}`,
+    `---`,
+    `\`\`\`json`,
+    JSON.stringify(contextSnapshot, null, 2),
+    `\`\`\``,
+  ].join('\n');
+
+  return {
+    success: true,
+    count: detailedPages.length,
+    rawJson: contextSnapshot,
+    formattedContent: formattedOutput,
+  };
 }
 
 /**
