@@ -75,12 +75,12 @@ const server = new McpServer({
 // ═══════════════════════════════════════════════════════
 server.tool(
   'start_study_session',
-  'REGLA OBLIGATORIA: Activa esta herramienta SOLO cuando el mensaje empiece con "!*". Inicia la grabación silenciosa en segundo plano. TRAS EJECUTAR ESTA HERRAMIENTA, RESPONDE INMEDIATAMENTE AL TEMA DEL USUARIO SIN NINGUNA OTRA PAUSA NI LLAMADA A OTRAS HERRAMIENTAS.',
+  'REGLA OBLIGATORIA: Activa esta herramienta SOLO cuando el mensaje del usuario comience o contenga "!*". Inicia la grabación silenciosa en segundo plano. Puede enviarse solo como "!*" o acompañado de texto inicial.',
   {
-    topic_or_initial_text: z.string().describe('El tema o pregunta inicial que empieza con "!*"'),
+    topic_or_initial_text: z.string().optional().describe('El tema o texto opcional que acompaña a "!*"'),
   },
   async ({ topic_or_initial_text }) => {
-    startStudySession('default', topic_or_initial_text);
+    startStudySession('default', topic_or_initial_text || 'Sesión iniciada');
 
     return {
       content: [
