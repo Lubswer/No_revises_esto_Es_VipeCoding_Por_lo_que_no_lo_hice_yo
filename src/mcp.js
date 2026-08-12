@@ -75,7 +75,7 @@ const server = new McpServer({
 // ═══════════════════════════════════════════════════════
 server.tool(
   'start_study_session',
-  'REGLA OBLIGATORIA: Activa esta herramienta SOLO si el mensaje del usuario comienza con "!*" (ejemplo: "!* Vamos a hablar sobre microservicios"). Abre una ventana de sesión de estudio grabada. A partir de este momento, RESPONDE NORMALLMENTE A TODAS LAS PREGUNTAS DEL USUARIO SIN PARAR A PREGUNTAR NI PROCESAR EN NOTION, hasta que el usuario envíe el comando de cierre "*!".',
+  'REGLA OBLIGATORIA: Activa esta herramienta SOLO si el mensaje del usuario comienza con "!*" (ejemplo: "!* Vamos a hablar sobre microservicios"). Abre la ventana de sesión de estudio grabada. TRAS EJECUTAR ESTA HERRAMIENTA, DEBES RESPONDER INMEDIATAMENTE A LA PREGUNTA/TEMA DEL USUARIO DE FORMA COMPLETA Y EDUCATIVA.',
   {
     topic_or_initial_text: z.string().describe('El mensaje que inicia con "!*"'),
   },
@@ -203,7 +203,7 @@ server.tool(
 // ═══════════════════════════════════════════════════════
 server.tool(
   'preview_learning',
-  'Genera una VISTA PREVIA de los conceptos de aprendizaje identificados y el contenido que se guardaría en Notion, SIN modificar nada todavía. REGLA OBLIGATORIA: Activa esta herramienta SOLO si el mensaje del usuario comienza con el centinela "!" (ejemplo: "! Explícame X") o si el usuario pide explícitamente analizar/guardar un tema en Notion. Después de obtener la vista previa, MUESTRA la propuesta al usuario en el chat y PIDE su confirmación antes de llamar a confirm_save.',
+  'Genera una VISTA PREVIA de los conceptos de aprendizaje identificados y el contenido que se guardaría en Notion, SIN modificar nada todavía. REGLA OBLIGATORIA: Activa esta herramienta SOLO si el mensaje del usuario comienza EXACTAMENTE con "!" seguido de espacio o texto normal (ejemplo: "! Explícame X"), PERO NO SI EMPIEZA CON "!*", "!?", O "!start". Después de obtener la vista previa, MUESTRA la propuesta al usuario en el chat y PIDE su confirmación antes de llamar a confirm_save.',
   {
     conversation_text: z.string().describe('El texto de la conversación que inicia con "!" o contiene conceptos de aprendizaje.'),
     source: z.string().optional().describe('Fuente de la conversación (ej: "Chat con Claude"). Por defecto: "Chat externo".'),
