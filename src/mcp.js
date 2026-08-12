@@ -143,6 +143,7 @@ server.tool(
 
       outputLines.push(``);
       outputLines.push(`❓ **¿Deseas confirmar la creación/actualización de estas notas recopiladas de la sesión en Notion?**`);
+      outputLines.push(`Para confirmar el guardado definitivo en Notion, ejecuta la herramienta \`confirm_save\` pasando el siguiente texto en \`conversation_text\`:\n\n${JSON.stringify(previewResult.pendingTranscript)}`);
 
       return {
         content: [{ type: 'text', text: outputLines.join('\n') }],

@@ -163,6 +163,7 @@ export async function closeStudySession(sessionId = 'default', source = 'Sesión
   const preview = await generatePreview(sessionData.fullTranscript, { source });
   return {
     ...preview,
+    pendingTranscript: sessionData.fullTranscript,
     sessionStats: {
       messageCount: sessionData.messageCount,
       startedAt: sessionData.startedAt,
